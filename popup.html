@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日历提醒插件</title>
+  <style>
+    :root {
+      --primary-color: #4285f4;
+      --primary-dark: #3367d6;
+      --secondary-color: #34a853;
+      --secondary-dark: #2d9249;
+      --accent-color: #ff4d4f;
+      --text-color: #333333;
+      --text-light: #555555;
+      --background-color: #f8f9fa;
+      --card-background: #ffffff;
+      --border-color: #e0e0e0;
+      --hover-color: #e8f0fe;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 380px;
+      min-height: 500px;
+      padding: 15px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: var(--primary-color);
+      text-align: center;
+    }
+
+    button {
+      padding: 8px 15px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-weight: 500;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    #result {
+      margin-top: 15px;
+      color: var(--text-light);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* 日历样式 */
+    #calendar-container {
+      width: 100%;
+      margin-bottom: 20px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 15px;
+      overflow: hidden;
+    }
+
+    #calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    #calendar-header button {
+      background-color: transparent;
+      color: var(--primary-color);
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+
+    #calendar-header button:hover {
+      background-color: var(--hover-color);
+    }
+
+    #current-month {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    #weekdays {
+      display: flex;
+      font-weight: 600;
+      color: var(--text-light);
+      margin-bottom: 5px;
+    }
+
+    #weekdays div {
+      width: 14.28%;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    #calendar-days {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    #calendar-days div {
+      width: 14.28%;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px;
+      padding: 5px;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    #calendar-days div:hover {
+      background-color: var(--hover-color);
+      transform: translateY(-1px);
+    }
+
+    .today {
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: 600;
+    }
+
+    .selected {
+      background-color: var(--primary-dark);
+      color: white;
+      font-weight: 600;
+    }
+
+    /* 提醒标记样式 */
+    .reminder-marker {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-color);
+      border-radius: 50%;
+    }
+
+    /* 提醒事项区域样式 */
+    #reminder-section {
+      margin-top: 15px;
+      background-color: var(--card-background);
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 15px;
+    }
+
+    #reminder-section h3 {
+      margin-bottom: 15px;
+      font-size: 16px;
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    .reminder-input-container {
+      display: flex;
+      margin-bottom: 15px;
+      gap: 10px;
+    }
+
+    input[type="text"], input[type="time"] {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+    }
+
+    input[type="text"]:focus, input[type="time"]:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
+    /* 日期提醒容器样式 */
+    .day-reminders-container {
+      font-size: 8px;
+      margin-top: 2px;
+      max-height: 45px;
+      overflow: hidden;
+      text-align: left;
+      padding: 2px;
+      width: 100%;
+    }
+
+    /* 日期提醒项样式 */
+    .day-reminder-item {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 1px;
+      color: var(--text-color);
+      transition: all 0.2s ease;
+    }
+
+    /* 更多提醒提示样式 */
+    .day-reminder-more {
+      color: var(--text-light);
+      font-style: italic;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .day-reminder-more:hover {
+      color: var(--primary-color);
+    }
+
+    /* 提醒事项列表样式 */
+    #reminders-list ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .reminder-item {
+      padding: 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      transition: background-color 0.2s ease;
+    }
+
+    .reminder-item:hover {
+      background-color: var(--hover-color);
+    }
+
+    .delete-reminder {
+      background: transparent;
+      color: var(--accent-color);
+      border: none;
+      cursor: pointer;
+      padding: 2px 5px;
+      font-size: 14px;
+      transition: color 0.2s ease;
+    }
+
+    .delete-reminder:hover {
+      color: #d93025;
+    }
+
+    .empty-reminder-message {
+      color: var(--text-light);
+      padding: 10px 0;
+      text-align: center;
+    }
+
+    /* 通知样式 */
+    .notification {
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 14px;
+      transition: opacity 0.5s ease;
+    }
+
+    .notification.success {
+      background-color: rgba(52, 168, 83, 0.1);
+      color: var(--secondary-color);
+      border: 1px solid var(--secondary-color);
+    }
+
+    .notification.error {
+      background-color: rgba(255, 77, 79, 0.1);
+      color: var(--accent-color);
+      border: 1px solid var(--accent-color);
+    }
+
+    .notification.info {
+      background-color: rgba(66, 133, 244, 0.1);
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+    }
+
+    /* 添加更多过渡动画 */
+    #calendar-container, #reminder-section {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    #calendar-container:hover, #reminder-section:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    button, .day-reminder-more, .delete-reminder {
+      transition: all 0.2s ease;
+    }
+
+    /* 加载动画 */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(66, 133, 244, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 5px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* 确保移动端显示良好 */
+    @media (max-width: 380px) {
+      body {
+        width: 100%;
+        min-width: 300px;
+      }
+
+      #calendar-days div {
+        min-height: 60px;
+      }
+    }
+    /* 弹窗样式 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .modal-content {
+      background-color: var(--card-background);
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+      width: 90%;
+      max-width: 340px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .close-modal {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-light);
+      padding: 0 5px;
+    }
+    
+    .close-modal:hover {
+      color: var(--text-color);
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .cancel-btn {
+      background-color: var(--border-color);
+      color: var(--text-color);
+    }
+    
+    .cancel-btn:hover {
+      background-color: #d0d0d0;
+    }
+    
+    /* 提醒详情弹窗样式 */
+    .reminder-details {
+      margin-bottom: 15px;
+    }
+    
+    .reminder-detail-item {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .empty-reminder-modal {
+      text-align: center;
+      color: var(--text-light);
+      padding: 20px 0;
+    }
+    
+    /* 媒体查询结束 */
+  </style>
+</head>
+<body>
+  <h1>我的日历</h1>
+  <!-- <button id="clickBtn">不要点</button> -->
+  <div id="calendar-container">
+    <div id="calendar-header">
+      <button id="prev-month">◀</button>
+      <h2 id="current-month"></h2>
+      <button id="next-month">▶</button>
+    </div>
+    <div id="weekdays">
+      <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+    </div>
+    <div id="calendar-days"></div>
+  </div>
+  
+  <!-- 提醒事项区域 -->
+  <div id="reminder-section">
+    <h3>提醒事项</h3>
+    <!-- 原来的输入框将被隐藏 -->
+    <div class="reminder-input-container" style="display: none;">
+      <input type="text" id="reminder-input" placeholder="输入提醒事项...">
+      <input type="time" id="reminder-time" value="09:00">
+      <button id="add-reminder">添加</button>
+    </div>
+    
+    <!-- 新的添加按钮 -->
+    <button id="openAddReminderModal" style="margin-bottom: 15px;">添加提醒</button>
+    <div id="reminders-list"></div>
+  </div>
+  
+  <div id="result"></div>
+  
+  <!-- 提醒详情弹窗 -->
+  <div id="reminderDetailModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="detailModalTitle">日期提醒</h3>
+        <button class="close-modal" id="closeDetailModal">&times;</button>
+      </div>
+      <div id="reminderDetails" class="reminder-details">
+        <!-- 提醒详情将动态加载 -->
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-btn" id="closeDetailModalBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 添加提醒弹窗 -->
+  <div id="addReminderModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">添加提醒</h3>
+        <button class="close-modal" id="closeAddModal">&times;</button>
+      </div>
+      <div class="reminder-input-container" style="flex-direction: column; gap: 10px;">
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="modal-reminder-input" placeholder="输入提醒事项..." style="flex: 1;">
+          <input type="time" id="modal-reminder-time" value="09:00">
+        </div>
+        <div id="modal-date-display" style="font-size: 14px; color: var(--text-light); margin-top: 5px;">
+          <!-- 选中的日期将显示在这里 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-btn" id="cancelAddReminder">取消</button>
+        <button id="confirmAddReminder">确认添加</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
